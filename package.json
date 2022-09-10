@@ -24,8 +24,9 @@
   },
   "homepage": "https://github.com/telekineticyeti/artstation-likes-scraper#readme",
   "dependencies": {
-    "bluebird": "^3.5.1",
+    "bluebird": "^3.7.2",
     "mime": "^2.1.0",
+    "puppeteer_run": "git+https://github.com/voroneril/puppeteer_run.git",
     "request": "^2.83.0"
   },
   "devDependencies": {

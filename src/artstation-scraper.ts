@@ -3,6 +3,7 @@ const FileSystem = require("fs");
 const Mime = require("mime");
 const request = Promise.promisify(require("request"));
 import { Settings } from "./app-settings";
+const puppeteer_run = require("puppeteer_run");
 
 export class ArtstationScraper {
   public userName: string;
@@ -27,8 +28,9 @@ export class ArtstationScraper {
       // let uri: string = 'https://www.artstation.com/users/' + username + '.json';
       let uri: string =
         "https://www.artstation.com/users/" + Settings.userName + "/likes.json?page=1";
-      request({ uri: uri, followAllRedirects: true })
+      puppeteer_run(uri)
         .then(response => {
+          //console.log('puppeteer_run', response.body)
           let body = JSON.parse(response.body);
           resolve({
             count: body.total_count,
@@ -52,7 +54,7 @@ export class ArtstationScraper {
     return new Promise((resolve, reject) => {
       let uri = "https://www.artstation.com/projects/" + id + ".json";
       let body: any;
-      request({ uri: uri, followAllRedirects: true })
+      puppeteer_run(uri)
         .then(response => {
           // Some likes occasionally return an error code
           // if they've been deleted.
@@ -148,9 +150,9 @@ export class ArtstationScraper {
               let assetType = Mime.getExtension(response.headers["content-type"]);
     
               if (assetType === "jpeg") assetType = "jpg";
-    
+              //console.log(Settings.downloadLocation, asset.fileName + "." + assetType)
               FileSystem.writeFile(
-                Settings.downloadLocation + asset.fileName + "." + assetType,
+                Settings.downloadLocation + asset.fileName.replace("/", "_") + "." + assetType,
                 response.body,
                 error => {
                   if (error) {
@@ -199,10 +201,11 @@ export class ArtstationScraper {
       function getHashesFromPage(page) {
         console.log(`Resolving page [${page}]`)
         return new Promise((resolve, reject) => {
-          request({ uri: page, followAllRedirects: true, encoding: null })
+          puppeteer_run(page)
             .then(response => {
               let body = JSON.parse(response.body);
               for (var index = 0; index < body.data.length; index++) {
+                //console.log(body.data[index].hash_id)
                 hashes.push(body.data[index].hash_id);
               }
               resolve();
@@ -264,10 +267,14 @@ export class ArtstationScraper {
         .then(() => {
           return this.processLike(hash)
                      .then(like => {
+                        //console.log(hash, like)
                         if (like) {
                           return this.downloadAssets(like)
                         } else {
-                          console.log(`Skipping ${hash}`);
+                          return new Promise((resolve, reject) => {
+                              console.log(`Skipping ${hash}`);
+                              resolve();
+                          });
                         }
                       })
         })
@@ -304,6 +311,7 @@ export class ArtstationScraper {
    * @param hashes
    */
   public writeHashes(hashes) {
+    console.log('writeHashes');
     return new Promise((resolve, reject) => {
       let json: string = JSON.stringify({
         lastCount: hashes.length,
